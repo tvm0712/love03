@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>愛的品質光譜測驗</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+    /* 隱藏/展開的過渡效果 */
+    .expandable-content {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: all 0.5s ease-in-out;
+    }
+    .expandable-content.open {
+      max-height: 800px;
+      opacity: 1;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8 flex justify-center items-center relative">
+
+  <!-- 背景音樂元素 -->
+  <audio
+    id="bg-music"
+    loop
+    preload="auto"
+    crossorigin="anonymous"
+    src="https://www.mfiles.co.uk/mp3-downloads/chopin-nocturne-op9-no2.mp3"
+  ></audio>
+
+  <!-- 音樂控制按鈕 -->
+  <button
+    onclick="toggleMusic()"
+    class="absolute top-4 right-4 md:top-8 md:right-8 bg-white/80 p-3 rounded-full shadow-md hover:bg-white transition-all text-slate-600 hover:text-slate-900 z-10"
+    title="開關背景音樂"
+  >
+    <div id="music-icon-container">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+    </div>
+  </button>
+
+  <div class="max-w-2xl w-full bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-500 mb-10 md:mb-0">
+    
+    <!-- Header -->
+    <div class="bg-slate-900 text-white p-6 text-center">
+      <h1 class="text-2xl font-bold tracking-wider flex items-center justify-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-rose-400"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        愛的品質光譜測驗
+      </h1>
+      <p class="text-slate-300 text-sm mt-2">結合賽斯資料與量子力學，深度解碼情感能量</p>
+    </div>
+
+    <!-- 動態內容區塊 -->
+    <div id="app-content" class="p-6 md:p-10 min-h-[400px] flex flex-col justify-center">
+      <!-- 內容由 JavaScript 動態渲染 -->
+    </div>
+  </div>
+
+  <script>
+    // --- 題庫資料建立 (1: 正向, -1: 反向) ---
+    const QUESTION_BANK = {
+      phys: [
+        { q: "當對方靠近我時，我的身體會不自覺地想要迎合與靠近。", p: 1 },
+        { q: "我非常喜歡對方身上的自然氣味。", p: 1 },
+        { q: "想到要與對方牽手或擁抱，我會感到抗拒甚至肢體僵硬。", p: -1 },
+        { q: "對方的碰觸會讓我感到噁心或起雞皮疙瘩。", p: -1 },
+        { q: "我渴望與對方有更深層的親密肢體接觸（如接吻或性行為）。", p: 1 },
+        { q: "即使在擁擠的空間裡，與對方肢體相碰也不會讓我感到不適。", p: 1 },
+        { q: "當我看到對方吃飯或咀嚼的樣子，會感到生理上的反胃。", p: -1 },
+        { q: "只要與對方處在同一個密閉空間，我就會覺得呼吸變得不順暢或有壓迫感。", p: -1 },
+        { q: "我喜歡觀察對方的五官、手部或身體線條，覺得極具吸引力。", p: 1 },
+        { q: "當對方生病或流汗時，我依然不排斥靠近照顧對方。", p: 1 },
+        { q: "對方的呼吸聲或打呼聲會讓我感到極度煩躁與厭惡。", p: -1 },
+        { q: "就算是很久沒見面，我對對方的肉體依然保有強烈的渴望。", p: 1 },
+        { q: "我對與對方共用私人餐具或水杯感到排斥。", p: -1 },
+        { q: "對方的聲音頻率在聽覺上讓我感到非常舒服與放鬆。", p: 1 },
+        { q: "對方不經意的肢體觸碰，會讓我產生猶如觸電般的愉悅感。", p: 1 },
+        { q: "我發現自己會下意識地避開對方的眼神交流，因為看了覺得不舒服。", p: -1 },
+        { q: "當對方靠近我的私人領域（半公尺內）時，我的大腦會響起警報。", p: -1 },
+        { q: "我覺得對方的體溫能帶給我生理上的安撫感。", p: 1 },
+        { q: "在性別吸引力上，對方完全符合我的原始生物性偏好。", p: 1 },
+        { q: "想到對方可能與他人有親密接觸，我會產生強烈的生理性嫉妒或痛苦。", p: 1 },
+        { q: "對方的某些衛生習慣或生理特徵，讓我感到無法忍受的嫌惡。", p: -1 },
+        { q: "我能夠完全放鬆地在對方面前展現自己最原始的身體狀態。", p: 1 },
+        { q: "當我感到疲倦時，我一點都不想被對方觸碰。", p: -1 },
+        { q: "擁抱對方時，我感覺自己的神經系統安定了下來。", p: 1 },
+        { q: "對方的穿著打扮或外在形象，經常讓我感到視覺上的不悅或鄙視。", p: -1 },
+        { q: "我喜歡把臉埋在對方的衣物裡感受對方的存在。", p: 1 },
+        { q: "如果要與對方同床共枕，我會因為生理上的排斥而失眠。", p: -1 },
+        { q: "對方的某種小動作（例如撩頭髮、舔嘴唇）對我來說極具性張力。", p: 1 },
+        { q: "我的身體對對方完全沒有任何化學反應，就像對待無機物一樣。", p: -1 },
+        { q: "當對方不在身邊時，我會產生類似戒斷症狀的身體渴望。", p: 1 },
+        { q: "對方的存在本身，就像是讓我生理機能失調的過敏原。", p: -1 },
+        { q: "只要對方一靠近，我的心跳就會不自覺地加速。", p: 1 },
+        { q: "我覺得對方的氣息充滿了侵略性，讓我想要逃離。", p: -1 }
+      ],
+      psych: [
+        { q: "我們在對話時，常有心智被啟發、互相激盪的愉悅感。", p: 1 },
+        { q: "聽對方分享日常瑣事，我經常覺得極度無聊、浪費時間。", p: -1 },
+        { q: "我非常欣賞對方面對困難與解決問題的態度。", p: 1 },
+        { q: "我發現自己經常在心裡鄙視或嘲笑對方的價值觀與決定。", p: -1 },
+        { q: "即使我們意見不同，我也覺得與對方溝通是安全且有建設性的。", p: 1 },
+        { q: "對方的情緒反應經常讓我覺得無理取鬧、難以忍受。", p: -1 },
+        { q: "我很願意把內心最脆弱的秘密或失敗與對方分享。", p: 1 },
+        { q: "我覺得對方的幽默感非常低劣或難以理解。", p: -1 },
+        { q: "我們對未來的藍圖與生活方式有著高度的共識。", p: 1 },
+        { q: "每當對方試圖掌控或干涉我的決定時，我會產生強烈的逆反心理。", p: -1 },
+        { q: "我覺得對方是我最好的朋友，與他相處總是很輕鬆。", p: 1 },
+        { q: "只要一想到要跟對方交代行程或解釋想法，我就覺得心累。", p: -1 },
+        { q: "對方總是能精準讀懂我的情緒，並給予恰到好處的安慰。", p: 1 },
+        { q: "我覺得對方在智力或認知層面上無法與我對話。", p: -1 },
+        { q: "我真心希望對方在事業或個人目標上能夠獲得成功。", p: 1 },
+        { q: "對方的言行舉止常常讓我感到丟臉或尷尬。", p: -1 },
+        { q: "我們擁有許多共同的興趣，且享受一起參與這些活動的過程。", p: 1 },
+        { q: "對方的存在常常讓我感到自信心受損或自我價值低落。", p: -1 },
+        { q: "即使沈默不語，我們在同一個空間裡也感到很自在。", p: 1 },
+        { q: "我經常需要對對方說謊或隱瞞，以避免無謂的心理爭執。", p: -1 },
+        { q: "我對對方的過去與經歷充滿了好奇，並想要更深入了解。", p: 1 },
+        { q: "我覺得對方的思想過於狹隘或充滿偏見，讓我感到排斥。", p: -1 },
+        { q: "當我遇到好笑或有趣的事情時，第一個就想分享給對方。", p: 1 },
+        { q: "對方的某種人格特質（如自私、貪婪或怯懦）讓我深感厭惡。", p: -1 },
+        { q: "我們在財務與金錢觀念上有著高度的契合度。", p: 1 },
+        { q: "我覺得與對方爭吵時，對方總是使用情緒勒索或有毒的溝通方式。", p: -1 },
+        { q: "對方的肯定與讚美，對我來說具有非常重要的心理支持作用。", p: 1 },
+        { q: "我覺得自己在對方面前必須戴上面具，無法做真實的自己。", p: -1 },
+        { q: "我完全信任對方不會在背後做出傷害我利益的事情。", p: 1 },
+        { q: "與對方相處一整天後，我會覺得心理能量被徹底抽乾。", p: -1 },
+        { q: "我很喜歡我們討論書籍、電影或社會議題時的氛圍。", p: 1 },
+        { q: "我覺得對方的控制慾或佔有慾讓我感到窒息。", p: -1 },
+        { q: "我打從心底敬重這個人的品格與為人。", p: 1 }
+      ],
+      spirit: [
+        { q: "在這段關係中，我感覺我的自我本體得到了擴張與進化。", p: 1 },
+        { q: "我們的關係讓我覺得像是陷入了某種無法逃脫的業力或輪迴枷鎖。", p: -1 },
+        { q: "我覺得我們的相遇不僅僅是巧合，而是為了完成某種更深層的意義。", p: 1 },
+        { q: "對方散發出的能量場常常讓我感到混濁、沈重或不安。", p: -1 },
+        { q: "在對方面前，我能開啟我的內在感官，感受到超越言語的連結。", p: 1 },
+        { q: "這段關係正在不斷消耗我的生命力，讓我感覺靈魂日漸萎縮。", p: -1 },
+        { q: "我覺得對方是我靈魂旅程中的重要導師或映照我內心的鏡子。", p: 1 },
+        { q: "對方的存在常常讓我對人性的光明面失去信心，產生虛無感。", p: -1 },
+        { q: "即使我們肉身分離，我也能感受到我們在精神層面有著量子糾纏般的連結。", p: 1 },
+        { q: "我覺得對方代表了某種我極度抗拒或恐懼的黑暗面。", p: -1 },
+        { q: "透過愛這個人，我感覺自己對整個世界的萬事萬物也生出了更多的慈悲。", p: 1 },
+        { q: "與對方深交讓我感覺偏離了自己生命原本的軌道與使命。", p: -1 },
+        { q: "我感覺我們之間存在著一種不需證明、超越時間的絕對信任。", p: 1 },
+        { q: "這段關係帶來了極大的恐懼，讓我時刻害怕失去自我或被吞噬。", p: -1 },
+        { q: "我覺得對方幫助我照見了自己潛意識中最深處的盲點，並讓我得以療癒。", p: 1 },
+        { q: "我覺得對方的靈魂頻率與我完全不相容，像是來自不同維度的排斥。", p: -1 },
+        { q: "我們共同經歷的挑戰，讓我感覺是在攜手進行某種靈魂層次的升級。", p: 1 },
+        { q: "我覺得這段關係充滿了某種難以言喻的邪惡感或毒性。", p: -1 },
+        { q: "凝視對方的眼睛時，我感覺能看見宇宙或某種神聖的平靜。", p: 1 },
+        { q: "我覺得對方只是在投射他的創傷到我身上，而非真正看見我的靈魂。", p: -1 },
+        { q: "因為這段關係，我變得更不畏懼死亡與未知的恐懼。", p: 1 },
+        { q: "即使知道對方客觀上沒有做錯什麼，我的直覺依然瘋狂警告我遠離他。", p: -1 },
+        { q: "在性別與肉體之外，我純粹地愛著對方這個靈魂的本質。", p: 1 },
+        { q: "我覺得為了維持這段關係，我正在出賣或扭曲自己的靈魂。", p: -1 },
+        { q: "當我們靜心或獨處時，能感受到一種難以言喻的和諧與合一感。", p: 1 },
+        { q: "對方的執念或慾望太過沈重，像黑洞一樣吸走我的光芒。", p: -1 },
+        { q: "我覺得自己願意無條件地接納對方的所有面向，包含其陰暗面。", p: 1 },
+        { q: "關係中的控制與權力鬥爭，讓我感覺我們像是在進行某種低頻的能量吸血。", p: -1 },
+        { q: "與對方的相處，讓我更容易進入心流或高度覺察的狀態。", p: 1 },
+        { q: "我覺得這段關係完全建立在幻象與自我欺騙之上，毫無真實的靈性基礎。", p: -1 },
+        { q: "對方激發了我內在最高善的潛能與創造力。", p: 1 },
+        { q: "即使在關係最好的時候，我的靈魂深處依然感到孤獨與疏離。", p: -1 },
+        { q: "若有一天我們必須分離，我依然會懷抱著感恩祝福對方的靈魂旅程。", p: 1 },
+        { q: "對方讓我感覺自己只是個工具，而非一個獨立且被尊重的神聖個體。", p: -1 }
+      ]
+    };
+
+    // --- SVG 圖示定義 ---
+    const icons = {
+      heart: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-rose-400"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
+      brain: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path></svg>',
+      sparkles: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-violet-400"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path><path d="M3 5h4"></path><path d="M17 19h4"></path></svg>',
+      arrowRight: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>',
+      rotateCcw: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>',
+      volume2: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>',
+      volumeX: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>',
+      heartSmall: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-rose-500"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
+      brainSmall: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path></svg>',
+      sparklesSmall: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-violet-500"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path><path d="M3 5h4"></path><path d="M17 19h4"></path></svg>',
+      chevronDown: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>'
+    };
+
+    // --- 狀態管理 ---
+    let step = 'start'; 
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let answers = []; 
+    let isMusicPlaying = false;
+    
+    const audioEl = document.getElementById('bg-music');
+    audioEl.volume = 0.3;
+
+    function shuffleAndPick(array, n) {
+      const shuffled = [...array].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, n);
+    }
+
+    function toggleMusic() {
+      const iconContainer = document.getElementById('music-icon-container');
+      if (isMusicPlaying) {
+        audioEl.pause();
+        isMusicPlaying = false;
+        iconContainer.innerHTML = icons.volumeX;
+      } else {
+        audioEl.play().catch(e => console.log("音訊播放失敗:", e));
+        isMusicPlaying = true;
+        iconContainer.innerHTML = icons.volume2;
+      }
+    }
+
+    function startQuiz() {
+      const qPhys = shuffleAndPick(QUESTION_BANK.phys, 3).map(q => ({ ...q, dim: 'phys' }));
+      const qPsych = shuffleAndPick(QUESTION_BANK.psych, 3).map(q => ({ ...q, dim: 'psych' }));
+      const qSpirit = shuffleAndPick(QUESTION_BANK.spirit, 4).map(q => ({ ...q, dim: 'spirit' }));
+      
+      currentQuestions = shuffleAndPick([...qPhys, ...qPsych, ...qSpirit], 10);
+      
+      currentIndex = 0;
+      answers = [];
+      step = 'quiz';
+
+      if (!isMusicPlaying) {
+        audioEl.play().then(() => {
+          isMusicPlaying = true;
+          document.getElementById('music-icon-container').innerHTML = icons.volume2;
+        }).catch(e => console.log("瀏覽器阻擋自動播放", e));
+      }
+      render();
+    }
+
+    function handleAnswer(likertValue) {
+      const currentQ = currentQuestions[currentIndex];
+      let score = 50;
+      if (currentQ.p === 1) {
+        score = (likertValue - 1) * 25;
+      } else {
+        score = (5 - likertValue) * 25;
+      }
+
+      answers.push({ dim: currentQ.dim, score });
+
+      if (currentIndex < currentQuestions.length - 1) {
+        currentIndex++;
+        render();
+      } else {
+        step = 'result';
+        render();
+      }
+    }
+
+    function getResultsData() {
+      const sums = { phys: { total: 0, count: 0 }, psych: { total: 0, count: 0 }, spirit: { total: 0, count: 0 } };
+      answers.forEach(ans => {
+        sums[ans.dim].total += ans.score;
+        sums[ans.dim].count += 1;
+      });
+
+      return {
+        phys: sums.phys.count ? Math.round(sums.phys.total / sums.phys.count) : 50,
+        psych: sums.psych.count ? Math.round(sums.psych.total / sums.psych.count) : 50,
+        spirit: sums.spirit.count ? Math.round(sums.spirit.total / sums.spirit.count) : 50,
+      };
+    }
+
+    function getArchetype(res) {
+      const { phys: p, psych: m, spirit: s } = res;
+
+      // 定義所有的分類與對應的賽斯資料建議
+      const types = [
+        // 1. 三維度高度一致區
+        { condition: p >= 90 && m >= 90 && s >= 90, 
+          title: "神聖雙生火焰", desc: "身心靈皆達 90 分以上的完美共振。極度罕見的宇宙級連結，彼此互相擴張生命體驗到極致。",
+          seth: "這象徵著兩個體的人格在價值完成（Value Fulfillment）上達到了高度的一致性。在量子層面，這像是兩顆完全相干的粒子。賽斯說：每一個自我都是一個更大存有（Entity）的一部分。建議：請意識到這種共振是為了讓你們共同創造更大的實相，而非僅僅耽溺於情感的圓滿。記得賽斯在《靈魂永生》第 6 節提到的：靈魂是個體化的精神能量。你們的結合是為了擴張這份能量。" },
+        { condition: p >= 80 && m >= 80 && s >= 80, 
+          title: "極致靈魂伴侶", desc: "三個維度皆落於 80-89 分的強烈區間。深深吸引、理解並互相成就的高頻愛戀。",
+          seth: "這是一段互為鏡像的深度教學關係。賽斯說：你的環境是你自己精神狀態的延伸。建議：珍惜這種高度的理解，但要警惕過度依賴。保持個性的獨立，因為存有的豐富性來自於其各個人格部分的獨特發展。在量子學中，這叫作強耦合，但也需要維持各自的波函數不被完全坍縮。" },
+        { condition: p >= 70 && m >= 70 && s >= 70, 
+          title: "高頻契合愛侶", desc: "全方位 70-79 分的深層契合。關係充滿滋養、穩定的愛意與共同成長的強大動力。",
+          seth: "這顯示你們在架構二（Framework 2）中已有深厚的意圖共識。建議：當關係穩定時，嘗試共同開發內在感官。賽斯說：內在感官使你能夠感知超越物質形式的實相。利用這份契合度去探索生命的更多維度，而不僅僅是物質生活的安穩。" },
+        { condition: p >= 60 && m >= 60 && s >= 60, 
+          title: "溫潤發展伴侶", desc: "皆處於 60-69 分的舒適好感區。擁有良好的互動基礎，正在穩健擴張愛的質量。",
+          seth: "這是一段富有創造潛力的初生實相。建議：透過肯定的信念來強化這份好感。賽斯說：你得到的正是你預期會得到的。在微觀世界裡，微小的擾動可以引發巨大的變化，持續在心理維度注入正向預期，愛的質量會隨之躍遷。" },
+        
+        // 2. 三維度極度排斥區
+        { condition: p <= 10 && m <= 10 && s <= 10, 
+          title: "絕對毀滅宿敵", desc: "全方位低於 10 分的極度厭惡。對方在每一個維度都觸發了你的生存警報與深深的恐懼。",
+          seth: "在賽斯資料中，受害者與加害者在心理網絡上是互補的。賽斯說：受害者往往和兇手一樣有罪責。建議：這段關係是你內在恐懼的極端投影。對方是你尚未接納的影子的化身。建議不要與之對抗，而是退回到內在，解除自己對於受害者身份的定義。" },
+        { condition: p <= 20 && m <= 20 && s <= 20, 
+          title: "有毒業力糾纏", desc: "落在 10-20 分的痛苦區間。這是一段充滿毒性、互相傷害且極度消耗能量的關係。",
+          seth: "賽斯強調業力並非懲罰，而是心理上的未竟之志。建議：察覺你們之間相互消耗的能量模式。這就像是破壞性干涉的波形。賽斯說：你並不受制於過去，除非你相信你受制。終結糾纏的方法是改變你當下的信念。" },
+        { condition: p <= 30 && m <= 30 && s <= 30, 
+          title: "嚴重摩擦排斥", desc: "落在 20-30 分的抗拒狀態。相處時充滿生理不適、價值觀衝突與靈性層面的嚴重耗損。",
+          seth: "這顯示了你與對方在基本偽裝實相（Camouflage reality）上的不相容。建議：當生理與靈性都在耗損時，這是你的內在自己在發出警訊。賽斯說：你的身體是靈魂的忠實翻譯。尊重身體的不適，那是在告訴你這不是你目前價值完成的路徑。" },
+        { condition: p <= 40 && m <= 40 && s <= 40, 
+          title: "疏離冰冷過客", desc: "落在 30-40 分的冷淡區間。彼此之間毫無吸引力，甚至帶有輕微的防備與隔閡。",
+          seth: "這代表兩者的電磁能量場（EE units）幾乎沒有交集。建議：接受這份平淡。並非所有相遇都需要產生劇烈反應。在量子場論中，這只是兩個不同頻率的波擦肩而過。不需要強求連結。" },
+        
+        // 3. 中立區
+        { condition: p >= 40 && p <= 59 && m >= 40 && m <= 59 && s >= 40 && s <= 59, 
+          title: "無感點頭之交", desc: "分數皆集中在 40-59 分的平靜區間。不排斥也不吸引，屬於完全中立的陌生人或普通同事狀態。",
+          seth: "這是一種能量的背景狀態。建議：這顯示你們互不為對方的生命課題提供鏡像。保持這種中立，尊重彼此作為獨立存有的自主性。" },
+
+        // 4. 生理主導 (肉體極端)
+        { condition: p >= 80 && m <= 40 && s <= 40, 
+          title: "狂熱致命吸引", desc: "生理突破 80 分，心靈卻落入 40 分以下的排斥。猶如飛蛾撲火般無法自拔的純肉體迷戀與拉扯。",
+          seth: "這是一種極端失衡的能量轉換。賽斯說：情感最接近內在資料的生動性。建議：強烈的生理吸引是內在能量試圖突破壓抑的自我而產生的衝擊。建議向內探索：你的心理維度排斥了什麼？不要只看肉體，要看肉體背後渴望表達的生命力被什麼信念阻斷了。" },
+        { condition: p >= 70 && m <= 50 && s >= 60, 
+          title: "禁忌感官獻祭", desc: "生理與靈性高昂，卻缺乏日常心理共鳴。潛意識將對方視為某種神聖的慾望載體。",
+          seth: "這反映了將肉體神聖化以補償心理匱乏的傾向。建議：賽斯說：肉體是星體形態的物質化。你將對方視為神聖載體，其實是在找尋遺失的內在神性。試著在自己內在找回那份神聖感。" },
+        { condition: p >= 70 && m >= 40 && m <= 60 && s <= 50, 
+          title: "純粹肉體貪戀", desc: "生理高達 70 分以上，但心智層面僅維持普通交集，缺乏深層思想共識的短暫歡愉。",
+          seth: "這是對生命力（Vitality）的局部取用。建議：雖然賽斯肯定肉體的歡愉，但若缺乏心智與靈性的參與，能量會很快枯竭。賽斯在《早期課》中提到：能量會隨著使用而愈加旺盛，但若轉化路徑狹窄，則難以持續更新。" },
+
+        // 5. 心理主導 (心智極端)
+        { condition: m >= 80 && p <= 40, 
+          title: "極致柏拉圖知己", desc: "心理共鳴高達 80 分以上，但生理卻感到排斥或無感。這是跨越肉體、純粹思想與靈魂的深度碰撞。",
+          seth: "這展現了強大的心理共振，但忽視了肉體也是靈魂的一部分。建議：賽斯說：你不僅僅是一個居住在肉體裡的靈魂。否定生理吸引也是一種對物質實相的否定。建議思考：是什麼信念讓你將性靈與肉體對立起來？" },
+        { condition: m >= 70 && p <= 30 && s <= 50, 
+          title: "無性靈魂摯友", desc: "心理交流超過 70 分，但生理上完全冷感。彼此是最好的傾聽者與避風港，但絕無情慾。",
+          seth: "這是一種純粹的心理支持系統。建議：在量子觀點下，這是波包的完美重疊。這段關係提供了安全感，但若想擴張生命體驗，或許需要打破這種舒適圈，讓能量流向其他感官維度。" },
+        { condition: m >= 70 && p >= 40 && p <= 60 && s >= 70, 
+          title: "高維思想盟友", desc: "心理與靈性契合度極高，一起探討宇宙與人生，但肉體慾望僅維持在中立水準。",
+          seth: "你們在架構二的知識領域共同運作。建議：這是一段極佳的學習夥伴關係。賽斯說：思想本身即具有電磁現實。利用你們的共鳴去共同構思（Concept）新的實相。" },
+        { condition: m >= 70 && p >= 40 && p <= 60 && s <= 40, 
+          title: "世俗理性夥伴", desc: "心理上 70 分的完美合作夥伴，但靈性感到受限或空虛。適合共事但難以觸及更深的靈魂。",
+          seth: "這是自我（Ego）主導的合作。建議：賽斯說：自我會害怕死亡。如果靈性感到空虛，說明這段關係僅止於偽裝世界的運作。建議在合作中加入更多直覺與靈感。" },
+
+        // 6. 靈性主導 (形而上極端)
+        { condition: s >= 80 && m <= 40 && p <= 40, 
+          title: "殉道式病態救贖", desc: "靈性執念突破 80 分，無視身心層面的強烈痛苦與排斥（低於40），堅信彼此有必須完成的宿命。",
+          seth: "這是典型的錯誤信念引發的能量失衡。建議：賽斯說：你無法救贖任何人，每個人都創造自己的實相。這種殉道感源於對罪惡與救贖的僵化信念，對雙方的存有發展都是阻礙。" },
+        { condition: s >= 80 && p >= 70 && m <= 40, 
+          title: "走火入魔業力戀", desc: "靈性與生理極高，心理卻排斥。充滿靈性幻象與肉體慾望的極度拉扯，關係極具破壞性。",
+          seth: "這是靈魂劇烈的實驗場。建議：生理與靈性的高頻與心理的排斥形成了巨大的張力。這像是一個高電壓的變壓器。賽斯說：能量的總量是無限大，但可使用量取決於參考點。建議先處理心理層面的抗拒，否則身體會燒毀。" },
+        { condition: s >= 70 && p >= 40 && p <= 59 && m >= 40 && m <= 59, 
+          title: "虛幻神格化投射", desc: "靈性高達 70 分以上，但在現實中僅有中立的生理與心理互動，多屬於遠距離的崇拜或單相思。",
+          seth: "這是在架構二中進行的單向連結。建議：賽斯說：你存在於比你所知的更多的維度中。這種投射是你內在力量的外放。請收回這份投射，意識到你崇拜的品質其實就在你自己的靈魂之內。" },
+
+        // 7. 混合矛盾型
+        { condition: p >= 70 && m >= 70 && s <= 30, 
+          title: "沉淪的世俗享樂", desc: "身心契合皆達 70 分以上，但靈性層面跌破 30 分。雖然現世快樂，卻覺得靈魂逐漸枯萎或墮落。",
+          seth: "這是將意識侷限於物質感官的表現。建議：賽斯說：靈魂如果不擴張，就會感到窒息。雖然身心快樂，但缺乏靈性意圖會導致價值完成的停滯。嘗試在享受中帶入對一切萬有（All That Is）的感謝。" },
+        { condition: p <= 30 && m >= 70 && s >= 70, 
+          title: "超脫的靈性導師", desc: "心理與靈性極高，但生理極度排斥（低於30）。對方如同嚴厲或神聖的導師，令人敬畏但不願親近。",
+          seth: "這是一段權力不對等的內在教導。建議：生理的極度排斥顯示出你的自我（Ego）在對方的強大能量下感到了威脅。賽斯說：真正的導師是引導你回到你自己的內在權威。不要過度神格化對方。" },
+        { condition: p >= 70 && m <= 30 && s <= 40, 
+          title: "危險下半身誘惑", desc: "僅有生理突破 70 分，心靈與精神皆跌破 40 發出警告。這是純生物本能的驅使與理智的拉扯。",
+          seth: "這純粹是生物粒子間的本能吸引。建議：當心靈發出警告，說明這段關係與你當前的人格發展路徑相悖。賽斯說：情感是內在感官的延伸。聽從內在感官的負面反饋，那是在保護你的能量場不被干擾。" },
+
+        // 8. 常見組合
+        { condition: p >= 60 && m >= 60 && s >= 40 && s <= 60, 
+          title: "務實穩定愛侶", desc: "生理與心理皆達 60 分以上的良好及格線，靈性維持中立。這是現實生活中最常見、穩定且務實的伴侶。",
+          seth: "這是物質實相中最穩固的波形結構。建議：這是一個很好的基地。賽斯說：在安靜的時刻，你會認出你的個體性。在穩定的基礎上，可以適度加入靈性的探索，讓關係從平面變成立體。" },
+        { condition: p >= 40 && p <= 60 && m >= 60 && s >= 40 && s <= 60, 
+          title: "溫和知心好友", desc: "主要建立在 60 分以上的心理交流，沒有過多肉體慾望與靈性負擔，輕鬆無壓力的陪伴。",
+          seth: "這提供了心理上的平衡與緩衝。建議：賽斯說：愛是連結。這種輕鬆的連結對心理健康非常有益。不需要為了追求靈性或生理的極端而打破這份寶貴的平衡。" }
+      ];
+
+      for (let t of types) {
+        if (t.condition) return { title: t.title, desc: t.desc, seth: t.seth };
+      }
+
+      return { 
+        title: "動態重組光譜", 
+        desc: "你們的關係橫跨多個極端的 10 分區間，具備多重矛盾與拉扯。這是一個尚未完全定型、仍在劇烈動態演化的複雜階段。",
+        seth: "這顯示你們的能量場正處於高度的疊加狀態（Superposition）。建議：賽斯強調『當下即威力之點』，不要急著用舊有的信念去定義這段關係。保持覺察，觀察你們的互動如何反映出你內在不同次人格的需求衝突，允許實相自然展開。" 
+      };
+    }
+
+    function getLevelText(dim, score) {
+      const b = Math.min(9, Math.max(0, Math.floor(score / 10)));
+      const texts = {
+        phys: [
+          "【0-9分 極度作嘔】身體產生強烈排斥，甚至有噁心、恐懼的自律神經反應。",
+          "【10-19分 嚴重抗拒】對任何靠近或碰觸感到明顯的僵硬、不適與反感。",
+          "【20-29分 明顯疏離】潛意識會想保持社交距離，排斥共用物品或空間。",
+          "【30-39分 輕微冷感】沒有吸引力，對於肢體接觸感到勉強或不自在。",
+          "【40-49分 無感邊緣】不排斥但絕對不渴望，身體毫無化學反應。",
+          "【50-59分 順眼舒適】身體感官覺得放鬆、不緊繃，有著基本的接納度。",
+          "【60-69分 明確好感】喜歡對方的氣味、聲音或外貌，有輕微的靠近渴望。",
+          "【70-79分 強烈吸引】會產生心跳加速的愉悅感，渴望親密接觸。",
+          "【80-89分 性感張力】身體完全為對方敞開，有著極深的生理迷戀與渴望。",
+          "【90-100分 狂熱本能】無法自拔的絕對吸引，身體如磁鐵般互相吸引與共振。"
+        ],
+        psych: [
+          "【0-9分 極度仇恨】充滿敵意、鄙視或深深的恐懼，完全無法忍受對方的言行。",
+          "【10-19分 價值觀撕裂】溝通充滿毒性、情緒勒索或強烈的逆反防禦心理。",
+          "【20-29分 心智摩擦】覺得對方難以理喻，交流時感到巨大的壓力與心累。",
+          "【30-39分 溝通障礙】話不投機半句多，容易覺得無聊、尷尬或不耐煩。",
+          "【40-49分 交集薄弱】缺乏共鳴，僅能進行最表面的客套或事務性交流。",
+          "【50-59分 和平交流】能順暢溝通，不帶強烈情緒波動，像一般的普通熟人。",
+          "【60-69分 心智共鳴】聊天感到愉快、有啟發，能夠分享日常並互相理解。",
+          "【70-79分 深度依賴】充滿信任與安全感，能展露脆弱，是極佳的心智夥伴。",
+          "【80-89分 三觀契合】幾乎能讀懂對方的心思，充滿欣賞、敬重與無條件的支持。",
+          "【90-100分 心靈知己】靈魂深處的對話，思想高度交融，彼此是對方最懂的唯一。"
+        ],
+        spirit: [
+          "【0-9分 靈魂毒藥】感覺對方代表著極致的黑暗，對生命力造成毀滅性打擊。",
+          "【10-19分 能量吸血】關係像黑洞般抽乾你的光芒與靈氣，充滿深層的消耗。",
+          "【20-29分 業力拖累】感覺被低頻的執念或宿命枷鎖困住，靈魂感到窒息。",
+          "【30-39分 靈性失衡】相處時會感到莫名沉重、不安或偏離了自己的生命軌道。",
+          "【40-49分 無交集點】感受不到形而上的連結，關係完全停留在唯物世俗層面。",
+          "【50-59分 平靜無干擾】彼此的能量場互不侵犯，維持著最基本的個體獨立。",
+          "【60-69分 溫和啟發】對方能帶來一些高維度的思考，讓你對世界有更多的包容。",
+          "【70-79分 靈魂映照】對方像一面鏡子，幫助你療癒創傷、看見盲點並擴張自我。",
+          "【80-89分 生命共同體】超越時間與肉體的絕對信任，共同經歷靈魂的覺醒與升級。",
+          "【90-100分 宇宙合一】感受到萬物歸一的慈悲大愛，靈魂頻率完美共振，超越生死。"
+        ]
+      };
+      return texts[dim][b];
+    }
+
+    function getSethDimAdvice(dim) {
+      const texts = {
+        phys: "賽斯認為身體是細胞意識的集體創作。分數低於 30 分代表細胞在排斥對方的電磁編碼；高於 90 分則是生物性的合一渴望。【量子視角】這如同量子糾纏，兩者的生物場產生了強烈的建設性干涉（Constructive Interference）。",
+        psych: "心理狀態是自我（Ego）層面的翻譯與詮釋。分數高低反映了你們對彼此實相的翻譯準確度。【量子視角】這如同波的同頻共振，當頻率接近時，能量傳輸效率最高。",
+        spirit: "這涉及存有（Entity）層面的連結，高分代表你們在架構二中互為支援。【量子視角】這代表了非局域性（Non-locality）的連結，超越了物質空間與時間的限制，是一種靈魂層面的相干性。"
+      };
+      return texts[dim];
+    }
+
+    // UI 互動：切換賽斯解析面板
+    function toggleSethAdvice() {
+      const content = document.getElementById('seth-advice-content');
+      const icon = document.getElementById('seth-chevron');
+      if (content.classList.contains('open')) {
+        content.classList.remove('open');
+        icon.style.transform = 'rotate(0deg)';
+      } else {
+        content.classList.add('open');
+        icon.style.transform = 'rotate(180deg)';
+      }
+    }
+
+    function render() {
+      const appContent = document.getElementById('app-content');
+      appContent.innerHTML = ''; 
+
+      if (step === 'start') {
+        appContent.innerHTML = `
+          <div class="text-center animate-fade-in">
+            <div class="flex justify-center gap-6 mb-8 text-slate-400">
+              <div class="flex flex-col items-center gap-2">${icons.heart}<span>生理性</span></div>
+              <div class="flex flex-col items-center gap-2">${icons.brain}<span>心理性</span></div>
+              <div class="flex flex-col items-center gap-2">${icons.sparkles}<span>靈性</span></div>
+            </div>
+            <p class="text-gray-600 mb-8 leading-relaxed">
+              本測驗將從百題題庫中隨機抽取 10 個情境。<br/>
+              請回想某個特定的對象，憑直覺回答你真實的感受。<br/>
+              測驗包含正向吸引與負向厭惡機制。
+            </p>
+            <button onclick="startQuiz()" class="bg-slate-900 text-white px-8 py-3 rounded-full font-medium hover:bg-slate-800 transition-colors flex items-center gap-2 mx-auto shadow-lg hover:shadow-xl">
+              開始測驗 ${icons.arrowRight}
+            </button>
+          </div>
+        `;
+      } 
+      else if (step === 'quiz') {
+        const progressPercentage = ((currentIndex + 1) / 10) * 100;
+        appContent.innerHTML = `
+          <div class="animate-fade-in w-full max-w-xl mx-auto">
+            <div class="mb-8">
+              <div class="flex justify-between text-sm text-gray-500 mb-2">
+                <span>題目進度</span>
+                <span>${currentIndex + 1} / 10</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-slate-800 h-2 rounded-full transition-all duration-300" style="width: ${progressPercentage}%"></div>
+              </div>
+            </div>
+
+            <div class="bg-slate-50 p-6 rounded-xl border border-slate-100 mb-8 min-h-[120px] flex items-center justify-center text-center shadow-sm">
+              <h2 class="text-xl font-medium text-slate-800 leading-relaxed">
+                ${currentQuestions[currentIndex].q}
+              </h2>
+            </div>
+
+            <div class="flex flex-col gap-3">
+              <button onclick="handleAnswer(5)" class="w-full py-4 px-6 rounded-lg border transition-colors duration-200 font-medium bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200">非常同意</button>
+              <button onclick="handleAnswer(4)" class="w-full py-4 px-6 rounded-lg border transition-colors duration-200 font-medium bg-green-50 hover:bg-green-100 text-green-700 border-green-200">同意</button>
+              <button onclick="handleAnswer(3)" class="w-full py-4 px-6 rounded-lg border transition-colors duration-200 font-medium bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200">普通 / 不確定</button>
+              <button onclick="handleAnswer(2)" class="w-full py-4 px-6 rounded-lg border transition-colors duration-200 font-medium bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200">不同意</button>
+              <button onclick="handleAnswer(1)" class="w-full py-4 px-6 rounded-lg border transition-colors duration-200 font-medium bg-red-50 hover:bg-red-100 text-red-700 border-red-200">非常不同意</button>
+            </div>
+          </div>
+        `;
+      } 
+      else if (step === 'result') {
+        const results = getResultsData();
+        const archetype = getArchetype(results);
+
+        const buildBar = (label, iconSvg, value, positiveColorClass, dimKey) => {
+          const isPositive = value >= 50;
+          const barWidth = Math.abs(value - 50) * 2;
+          const levelDesc = getLevelText(dimKey, value);
+          const sethDimText = getSethDimAdvice(dimKey);
+          
+          let negativeBarHtml = '';
+          let positiveBarHtml = '';
+
+          if (!isPositive) {
+            negativeBarHtml = `<div class="absolute right-0 top-0 bottom-0 bg-red-400 transition-all duration-1000 ease-out animate-fade-in" style="width: ${barWidth}%"></div>`;
+          } else {
+            positiveBarHtml = `<div class="absolute left-0 top-0 bottom-0 ${positiveColorClass} transition-all duration-1000 ease-out animate-fade-in" style="width: ${barWidth}%"></div>`;
+          }
+
+          return `
+            <div class="mb-10">
+              <div class="flex justify-between items-center mb-2 text-sm font-medium text-gray-700">
+                <div class="flex items-center gap-2">
+                  ${iconSvg}
+                  <span>${label}</span>
+                </div>
+                <span class="font-mono">${value} 分</span>
+              </div>
+              
+              <div class="relative w-full h-8 bg-gray-100 rounded-full overflow-hidden flex">
+                <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-400 z-10"></div>
+                <div class="w-1/2 h-full relative">${negativeBarHtml}</div>
+                <div class="w-1/2 h-full relative">${positiveBarHtml}</div>
+              </div>
+              
+              <div class="flex justify-between text-xs text-gray-400 mt-1 mb-3">
+                <span>極度排斥 (0)</span>
+                <span>中立 (50)</span>
+                <span>極度吸引 (100)</span>
+              </div>
+              
+              <!-- 10分級距解析 -->
+              <div class="p-3 bg-white border rounded-lg text-sm text-gray-600 leading-relaxed shadow-sm ${isPositive ? 'border-l-4 border-l-indigo-300' : 'border-l-4 border-l-red-300'}">
+                ${levelDesc}
+              </div>
+
+              <!-- 維度專屬賽斯視角 -->
+              <div class="mt-2 text-xs text-slate-500 bg-slate-100/50 p-3 rounded-lg flex gap-2 items-start">
+                <div class="mt-0.5 text-amber-500">✨</div>
+                <div>${sethDimText}</div>
+              </div>
+            </div>
+          `;
+        };
+
+        appContent.innerHTML = `
+          <div class="animate-fade-in">
+            <div class="text-center mb-8">
+              <h2 class="text-sm font-semibold text-gray-500 tracking-widest uppercase mb-2">關係原型分析</h2>
+              <h3 class="text-3xl font-bold text-slate-900 mb-4">${archetype.title}</h3>
+              <p class="text-gray-600 bg-slate-50 p-4 rounded-lg inline-block border border-slate-100 shadow-sm text-left max-w-lg mx-auto">
+                ${archetype.desc}
+              </p>
+            </div>
+
+            <!-- 賽斯深度解析區塊 (可點擊展開) -->
+            <div class="mb-10 max-w-lg mx-auto">
+              <button onclick="toggleSethAdvice()" class="w-full bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-4 rounded-xl flex items-center justify-between text-amber-900 hover:shadow-md transition-all">
+                <div class="flex items-center gap-2 font-medium">
+                  <span class="text-xl">🌌</span>
+                  賽斯與量子力學深度解析
+                </div>
+                <div id="seth-chevron" class="transition-transform duration-300 text-amber-600">
+                  ${icons.chevronDown}
+                </div>
+              </button>
+              
+              <div id="seth-advice-content" class="expandable-content bg-white border border-amber-100 rounded-xl p-5 shadow-inner text-sm text-slate-700 leading-relaxed">
+                <p><span class="font-semibold text-amber-700 block mb-1">【賽斯觀點與建議】</span>${archetype.seth}</p>
+                <p class="mt-3 text-xs text-slate-400 pt-3 border-t border-slate-100">
+                  ※ 記住，這份結果也是一種觀察，而你的觀察本身就在塑造你的關係實相。
+                </p>
+              </div>
+            </div>
+
+            <div class="mb-10 px-2 md:px-6">
+              ${buildBar('生理性', icons.heartSmall, results.phys, 'bg-rose-400', 'phys')}
+              ${buildBar('心理性', icons.brainSmall, results.psych, 'bg-indigo-400', 'psych')}
+              ${buildBar('靈性', icons.sparklesSmall, results.spirit, 'bg-violet-400', 'spirit')}
+            </div>
+
+            <div class="text-center mt-8">
+              <button onclick="step = 'start'; render();" class="text-slate-500 hover:text-slate-900 font-medium flex items-center gap-2 mx-auto transition-colors px-6 py-3 bg-slate-100 rounded-full hover:bg-slate-200">
+                ${icons.rotateCcw} 重新評測其他關係
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
